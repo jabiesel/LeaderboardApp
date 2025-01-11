@@ -14,6 +14,7 @@ import {
   ScrollView,
 } from 'react-native';
 
+// Interface for the leaderboard user object
 interface LeaderboardUser {
   bananas: number;
   lastDayPlayed: string;
@@ -25,12 +26,14 @@ interface LeaderboardUser {
 }
 
 const App = () => {
+  // States for user input, search results, and leaderboard sorting
   const [username, setUsernameState] = useState('');
   const [userFound, setUserFound] = useState<LeaderboardUser | null>(null);
   const [fuzzyResults, setFuzzyResults] = useState<LeaderboardUser[]>([]);
   const [isAscending, setIsAscending] = useState(false);
   const dispatch = useDispatch();
 
+  // Function to handle user search
   const handleSearch = () => {
     if (username.trim() === '') {
       Alert.alert('Error', 'Please enter a username before searching.');
@@ -39,63 +42,71 @@ const App = () => {
 
     console.log(`Searching for user: ${username}`);
 
+    // Sort the leaderboard data by bananas in descending order
     const sortedLeaderboard = Object.values(leaderboardData).sort(
       (a, b) => b.bananas - a.bananas,
     );
 
+    // Attempt to find the exact user in the sorted leaderboard
     const foundUser = sortedLeaderboard.find(
       user => user.name.toLowerCase() === username.toLowerCase(),
     );
 
     if (!foundUser) {
-      // Perform fuzzy search if no exact match
+      // Fuzzy search for partial matches if the exact user is not found
       const results = sortedLeaderboard.filter(user =>
         user.name.toLowerCase().includes(username.toLowerCase()),
       );
 
       setFuzzyResults(results);
-      setUserFound(null); // Clear exact user
+      setUserFound(null); // Clear exact user state
     } else {
-      // Exact search
+      // Get the rank of the found user
       const userRank =
         sortedLeaderboard.findIndex(
           user => user.name.toLowerCase() === username.toLowerCase(),
         ) + 1;
 
-      // Get the top 10 users
+      // Get the top 10 users from the leaderboard
       const top10Leaderboard = sortedLeaderboard.slice(0, 10);
 
+      // Ensure the found user is added to the top 10 if not already present
       if (!top10Leaderboard.find(user => user.name === foundUser.name)) {
         top10Leaderboard[9] = foundUser;
       }
 
+      // Dispatch updated leaderboard and highlight the searched user
       dispatch(setLeaderboard(top10Leaderboard));
       dispatch(setUsername(username));
       setUserFound({...foundUser, bananas: userRank});
-      setFuzzyResults([]); // Clear fuzzy results
+      setFuzzyResults([]); // Clear fuzzy search results
     }
   };
 
+  // Function to sort the leaderboard by name or bananas
   const sortLeaderboard = (type: string) => {
     let sortedList = Object.values(leaderboardData);
 
     if (type === 'name') {
+      // Sort by name alphabetically
       sortedList.sort((a, b) => a.name.localeCompare(b.name));
     } else if (type === 'bananas') {
+      // Sort by bananas in descending order
       sortedList.sort((a, b) => b.bananas - a.bananas);
     }
 
     dispatch(setLeaderboard(sortedList));
   };
 
+  // Toggle between ascending and descending sort order for bananas
   const toggleSortOrder = () => {
     let sortedList = Object.values(leaderboardData);
 
     if (isAscending) {
-      // Sort by descending order
+      // Sort by bananas in descending order
       sortedList.sort((a, b) => b.bananas - a.bananas);
     } else {
-      // Sort by ascending order, and alphabetically for equal scores
+      // Sort by bananas in ascending order, and alphabetically for ties
       sortedList.sort((a, b) => {
         if (a.bananas === b.bananas) {
           return a.name.localeCompare(b.name);
@@ -108,11 +119,14 @@ const App = () => {
     dispatch(setLeaderboard(sortedList));
   };
 
+  // Select the leaderboard state from Redux store
   const leaderboard = useSelector((state: any) => state.leaderboard);
 
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Leaderboard Search</Text>
+
+      {/* Input field and search button */}
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.input}
@@ -125,6 +139,8 @@ const App = () => {
           <Text style={styles.buttonText}>Search</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Display the exact user or show no user found message */}
       {userFound ? (
         <Text style={styles.result}>
           User: {userFound.name} - Bananas: {userFound.bananas}
@@ -135,6 +151,7 @@ const App = () => {
         )
       )}
 
+      {/* Display fuzzy search results if applicable */}
       {fuzzyResults.length > 0 && (
         <View style={styles.fuzzyResults}>
           <Text style={styles.resultTitle}>Fuzzy Search Results:</Text>
@@ -146,6 +163,7 @@ const App = () => {
         </View>
       )}
 
+      {/* Sorting buttons */}
       <TouchableOpacity
         style={styles.sortButton}
         onPress={() => sortLeaderboard('name')}>
@@ -157,13 +175,16 @@ const App = () => {
         </Text>
       </TouchableOpacity>
 
+      {/* Leaderboard display */}
       <ScrollView style={styles.scrollView}>
         <View style={styles.leaderboard}>
+          {/* Table headers */}
           <View style={styles.leaderboardHeader}>
             <Text style={styles.leaderboardHeaderText}>Rank</Text>
             <Text style={styles.leaderboardHeaderText}>Name</Text>
             <Text style={styles.leaderboardHeaderText}>Bananas</Text>
           </View>
+          {/* Leaderboard entries */}
           {leaderboard.map((user: LeaderboardUser, index: number) => (
             <View
               key={user.uid}
@@ -188,6 +209,7 @@ const AppWrapper = () => (
   </Provider>
 );
 
+// Styles for the application UI
 const styles = StyleSheet.create({
   container: {
     flex: 1,
